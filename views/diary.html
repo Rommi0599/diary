@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <title>我的日記</title>
+  <link href="stylesheet.css" rel="stylesheet">
+</head>
+
+<body>
+  <h1>我的日記</h1>
+  <form id="diaryForm">
+    <label>日期：<input type="date" name="date" required></label><br><br>
+    <label>心情分數：
+      <select name="score">
+        <option value="1">😢 1</option>
+        <option value="2">😞 2</option>
+        <option value="3">😐 3</option>
+        <option value="4">😊 4</option>
+        <option value="5">😁 5</option>
+      </select>
+    </label><br><br>
+    <label>心情：
+      <input type="text" name="emoji" placeholder="例如：超開心">
+    </label><br><br>
+    <label>日記內容：<br>
+      <textarea name="content" rows="4" cols="40"></textarea>
+    </label><br><br>
+    <button type="submit">儲存日記</button>
+  </form>
+
+  <h2>每日記錄</h2>
+  <div style="text-align:center;margin-bottom:1em;">
+    <input type="date" id="searchDate">
+    <input type="text" id="searchKeyword" placeholder="搜尋內容">
+    <button id="searchBtn">搜尋</button>
+    <button id="clearSearchBtn">清除</button>
+  </div>
+  <div id="diaryList"></div>
+  <div id="pagination" style="text-align:center;margin:1em 0;"></div>
+  <a href="index.html">回首頁</a>
+
+  <script>
+    let diaries = [];
+    let currentPage = 1;
+    const pageSize = 5;
+
+    // 送出日記
+    document.getElementById('diaryForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const user_id = localStorage.getItem('user_id');
+      if (!user_id) {
+        alert('請先登入！');
+        return;
+      }
+      const data = {
+        user_id: user_id,
+        date: form.date.value,
+        mood_score: form.score.value,
+        mood_emoji: form.emoji.value,
+        content: form.content.value
+      };
+      fetch('/addDiary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            alert('日記儲存成功！');
+            form.reset();
+            fetchDiaries();
+          } else {
+            alert('儲存失敗：' + result.message);
+          }
+        })
+    });
+
+    // 取得自己的日記
+    function fetchDiaries() {
+      const user_id = localStorage.getItem('user_id');
+      if (!user_id) {
+        alert('請先登入！');
+        document.getElementById('diaryList').innerHTML = '<div style="color:#ef8f8f;text-align:center;">請先登入才能查看自己的日記！</div>';
+        return;
+      }
+      fetch('/diaries?user_id=' + encodeURIComponent(user_id))
+        .then(res => res.json())
+        .then(data => {
+          diaries = data.diaries;
+          currentPage = 1;
+          renderDiaries();
+        });
+    }
+
+    // 分頁與搜尋
+    function renderDiaries() {
+      let filtered = diaries;
+      const searchDate = document.getElementById('searchDate').value;
+      const keyword = document.getElementById('searchKeyword').value.trim();
+      if (searchDate) {
+        filtered = filtered.filter(d => d.date === searchDate);
+      }
+      if (keyword) {
+        filtered = filtered.filter(d => d.content.includes(keyword) || (d.mood_emoji && d.mood_emoji.includes(keyword)));
+      }
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filtered.slice(start, start + pageSize);
+
+      const diaryList = document.getElementById('diaryList');
+      diaryList.innerHTML = '';
+      if (pageData.length === 0) {
+        diaryList.innerHTML = '<div style="color:#888;text-align:center;">查無資料</div>';
+      }
+      pageData.forEach(diary => {
+        const div = document.createElement('div');
+        div.className = 'diary-item';
+        div.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <b style="color:#ef8f8f;font-size:1.1em;">${diary.date}</b>
+              <span style="margin-left:1em;">心情分數：<b>${diary.mood_score}</b></span>
+              <span style="margin-left:1em;">${diary.mood_emoji ? 'Emoji：<b>' + diary.mood_emoji + '</b>' : ''}</span>
+            </div>
+            <div>
+              <button class="edit-btn" onclick="editDiary(${diary.id})">編輯</button>
+              <button class="delete-btn" onclick="deleteDiary(${diary.id})">刪除</button>
+            </div>
+          </div>
+          <div style="margin-top:0.5em;">${diary.content.replace(/\n/g, '<br>')}</div>
+        `;
+        diaryList.appendChild(div);
+      });
+
+      // 分頁按鈕
+      let pagHtml = `<span style="color:#888;">共 ${total} 筆，頁次 ${currentPage}/${totalPages}</span><br>`;
+      pagHtml += `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末頁</button>`;
+      document.getElementById('pagination').innerHTML = pagHtml;
+    }
+
+    // 分頁跳轉
+    window.gotoPage = function (page) {
+      currentPage = page;
+      renderDiaries();
+    };
+
+    // 搜尋
+    document.getElementById('searchBtn').onclick = function () {
+      currentPage = 1;
+      renderDiaries();
+    };
+    document.getElementById('clearSearchBtn').onclick = function () {
+      document.getElementById('searchDate').value = '';
+      document.getElementById('searchKeyword').value = '';
+      currentPage = 1;
+      renderDiaries();
+    };
+
+    // 刪除日記
+    window.deleteDiary = function (id) {
+      if (!confirm('確定要刪除這篇日記嗎？')) return;
+      fetch('/diary/' + id, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            fetchDiaries();
+          } else {
+            alert('刪除失敗');
+          }
+        });
+    };
+
+    // 編輯日記
+    window.editDiary = function (id) {
+      const diary = diaries.find(d => d.id === id);
+      if (!diary) return;
+      const newContent = prompt('請輸入新的日記內容：', diary.content);
+      if (newContent !== null) {
+        fetch('/diary/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: newContent })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success) fetchDiaries();
+            else alert('編輯失敗');
+          });
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', fetchDiaries);
+  </script>
+</body>
+
+</html>

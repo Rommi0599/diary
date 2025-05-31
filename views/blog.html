@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <title>部落格</title>
+  <link href="stylesheet.css" rel="stylesheet">
+</head>
+
+<body>
+  <h1>部落格</h1>
+  <div class="cardLayout">
+    <form id="blogForm">
+      <label>標題：<input type="text" name="title" required></label><br><br>
+      <label>分類：<input type="text" name="category"></label><br><br>
+      <label>標籤：<input type="text" name="tags" placeholder="以逗號分隔"></label><br><br>
+      <label>封面圖：<input type="url" name="cover_url" placeholder="圖片網址"></label><br><br>
+      <label>摘要：<br>
+        <textarea name="summary" rows="3" cols="40"></textarea>
+      </label><br><br>
+      <label>內容：<br>
+        <textarea name="content" rows="6" cols="40"></textarea>
+      </label><br><br>
+      <button type="submit">發表文章</button>
+    </form>
+  </div>
+  <h2>最新文章</h2>
+  <div id="categoryFilterBox" style="text-align:center;margin-bottom:1em;"></div>
+  <div id="blogList"></div>
+  <div id="pagination" style="text-align:center;margin:1em 0;"></div>
+  <a href="/index.html">回首頁</a>
+  <script>
+    let blogs = [];
+    let comments = {};
+    let currentPage = 1;
+    const pageSize = 5;
+
+    // 取得所有文章並顯示
+    function fetchBlogs() {
+      fetch('/blogs')
+        .then(res => res.json())
+        .then(data => {
+          blogs = data.blogs;
+          currentPage = 1;
+          renderBlogs();
+          renderCategoryOptions();
+        });
+    }
+
+    // 取得留言
+    function fetchComments(blogId, callback) {
+      fetch(`/comments?blog_id=${blogId}`)
+        .then(res => res.json())
+        .then(data => {
+          comments[blogId] = data.comments || [];
+          if (callback) callback();
+        });
+    }
+
+    // 渲染文章列表
+    function renderBlogs() {
+      const category = document.getElementById('categoryFilter')?.value || '';
+      let filtered = blogs;
+      if (category) {
+        filtered = filtered.filter(b => b.category === category);
+      }
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filtered.slice(start, start + pageSize);
+
+      const blogList = document.getElementById('blogList');
+      blogList.innerHTML = '';
+      if (pageData.length === 0) {
+        blogList.innerHTML = '<div style="color:#888;text-align:center;">查無資料</div>';
+      }
+      pageData.forEach(blog => {
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+        <img class="cover" src="${blog.cover_url || 'https://picsum.photos/100/60'}" alt="封面圖">
+        <strong>${blog.title}</strong>
+        <div class="tags">分類：${blog.category || ''}，標籤：${blog.tags || ''}</div>
+        <p class="summary">${blog.summary || ''}</p>
+        <div class="full-content" style="display:none;">${blog.content.replace(/\n/g, '<br>')}</div>
+        <button class="toggle-btn" onclick="toggleContent(this)">全文</button>
+        <div style="color:#aaa;font-size:0.9em;">
+          ${blog.created_at ? '發表於：' + blog.created_at : ''}　作者：${blog.username || ''}
+        </div>
+        ${blog.user_id == localStorage.getItem('user_id') ? `
+          <button onclick="editBlog(${blog.id})">編輯</button>
+          <button onclick="deleteBlog(${blog.id})">刪除</button>
+        ` : ''}
+        <div class="comments" id="comments-${blog.id}" style="margin-top:1em;"></div>
+        <form class="commentForm" data-blogid="${blog.id}" style="margin-top:0.5em;">
+          <input type="text" name="content" placeholder="留言..." style="width:60%;" required>
+          <button type="submit">送出留言</button>
+        </form>
+      `;
+        blogList.appendChild(div);
+        // 取得留言
+        fetchComments(blog.id, () => renderComments(blog.id));
+      });
+
+      // 分頁按鈕
+      let pagHtml = `<span style="color:#888;">共 ${total} 筆，頁次 ${currentPage}/${totalPages}</span><br>`;
+      pagHtml += `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一頁</button>`;
+      pagHtml += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末頁</button>`;
+      document.getElementById('pagination').innerHTML = pagHtml;
+
+      // 綁定留言表單送出事件
+      document.querySelectorAll('.commentForm').forEach(form => {
+        form.onsubmit = function (e) {
+          e.preventDefault();
+          const blog_id = this.getAttribute('data-blogid');
+          const user_id = localStorage.getItem('user_id');
+          if (!user_id) {
+            alert('請先登入才能留言');
+            return;
+          }
+          const content = this.content.value.trim();
+          if (!content) return;
+          fetch('/addComment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ blog_id, user_id, content })
+          })
+            .then(res => res.json())
+            .then(result => {
+              if (result.success) {
+                this.reset();
+                fetchComments(blog_id, () => renderComments(blog_id));
+              } else {
+                alert('留言失敗');
+              }
+            });
+        };
+      });
+    }
+
+    // 渲染留言
+    function renderComments(blogId) {
+      const box = document.getElementById('comments-' + blogId);
+      const list = comments[blogId] || [];
+      if (!box) return;
+      if (list.length === 0) {
+        box.innerHTML = '<div style="color:#aaa;font-size:0.95em;">暫無留言</div>';
+      } else {
+        box.innerHTML = list.map(c =>
+          `<div style="border-bottom:1px solid #eee;padding:0.3em 0;">
+            <b style="color:#ef8f8f;">${c.username || '匿名'}</b>：${c.content}
+            <span style="color:#aaa;font-size:0.85em;margin-left:1em;">${c.created_at ? c.created_at.slice(0,16).replace('T',' ') : ''}</span>
+          </div>`
+        ).join('');
+      }
+    }
+
+    // 分頁跳轉
+    window.gotoPage = function (page) {
+      currentPage = page;
+      renderBlogs();
+    };
+
+    // 展開/收合全文
+    window.toggleContent = function (btn) {
+      const summary = btn.parentElement.querySelector('.summary');
+      const full = btn.parentElement.querySelector('.full-content');
+      if (full.style.display === 'none') {
+        full.style.display = '';
+        summary.style.display = 'none';
+        btn.textContent = '收合';
+      } else {
+        full.style.display = 'none';
+        summary.style.display = '';
+        btn.textContent = '全文';
+      }
+    };
+
+    // 分類選單
+    function renderCategoryOptions() {
+      const categories = Array.from(new Set(blogs.map(b => b.category).filter(Boolean)));
+      let html = `<select id="categoryFilter"><option value="">全部分類</option>`;
+      categories.forEach(c => html += `<option value="${c}">${c}</option>`);
+      html += `</select>`;
+      document.getElementById('categoryFilterBox').innerHTML = html;
+      document.getElementById('categoryFilter').onchange = () => { currentPage = 1; renderBlogs(); };
+    }
+
+    // 文章發表
+    document.getElementById('blogForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const user_id = localStorage.getItem('user_id');
+      if (!user_id) {
+        alert('請先登入！');
+        return;
+      }
+      const data = {
+        title: form.title.value,
+        category: form.category.value,
+        tags: form.tags.value,
+        cover_url: form.cover_url.value,
+        summary: form.summary.value,
+        content: form.content.value,
+        user_id: user_id
+      };
+      fetch('/addBlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(result => {
+          alert(result.message);
+          form.reset();
+          fetchBlogs();
+        });
+    });
+
+    // 刪除文章
+    function deleteBlog(id) {
+      if (!confirm('確定要刪除這篇文章？')) return;
+      fetch('/blog/' + id, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(result => {
+          alert(result.success ? '刪除成功' : '刪除失敗');
+          fetchBlogs();
+        });
+    }
+
+    // 編輯文章
+    function editBlog(id) {
+      const blog = blogs.find(b => b.id === id);
+      if (!blog) return;
+      const newTitle = prompt('新標題', blog.title);
+      if (newTitle !== null) {
+        fetch('/blog/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...blog, title: newTitle })
+        })
+          .then(res => res.json())
+          .then(result => {
+            alert(result.success ? '修改成功' : '修改失敗');
+            fetchBlogs();
+          });
+      }
+    }
+
+    window.deleteBlog = deleteBlog;
+    window.editBlog = editBlog;
+
+    document.addEventListener('DOMContentLoaded', fetchBlogs);
+
+    // 圖片放大（點擊彈窗）
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('cover')) {
+        const src = e.target.src;
+        let modal = document.getElementById('imgModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'imgModal';
+          modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
+          modal.innerHTML = `<img id="modalImg" style="max-width:90vw;max-height:80vh;border-radius:10px;box-shadow:0 0 20px #000;">
+            <span style="position:absolute;top:30px;right:50px;font-size:2em;color:#fff;cursor:pointer;" id="closeModal">&times;</span>`;
+          document.body.appendChild(modal);
+          modal.addEventListener('click', function(ev) {
+            if (ev.target === modal || ev.target.id === 'closeModal') modal.style.display = 'none';
+          });
+        }
+        document.getElementById('modalImg').src = src;
+        modal.style.display = 'flex';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <title>生活書寫平台</title>
+  <style>
+    body {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      background: #f9f6f2;
+      margin: 0;
+      padding: 0;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 1em 2em 0 2em;
+      background: transparent;
+    }
+
+    .header-bar .tab-btn,
+    .header-bar .logout-btn {
+      background: #fff;
+      border: 1px solid #ef8f8f;
+      color: #ef8f8f;
+      border-radius: 20px;
+      padding: 0.5em 2em;
+      margin-left: 1em;
+      font-size: 1em;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.2s, color 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .header-bar .tab-btn:hover,
+    .header-bar .logout-btn:hover {
+      background: #ef8f8f;
+      color: #fff;
+    }
+
+    .header-bar .user-info {
+      color: #ef8f8f;
+      font-weight: bold;
+      margin-left: 1em;
+      font-size: 1em;
+    }
+
+    .main-title {
+      text-align: center;
+      color: #ef8f8f;
+      font-size: 2.5em;
+      margin-top: 1.5em;
+      margin-bottom: 1em;
+      letter-spacing: 2px;
+    }
+
+    .tab-content {
+      display: none;
+      max-width: 350px;
+      margin: 0 auto 2em auto;
+      background: #fff;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+      padding: 2em 2em 1.5em 2em;
+      position: relative;
+      z-index: 2;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .big-options {
+      display: flex;
+      justify-content: center;
+      gap: 3em;
+      margin: 2em 0 2em 0;
+    }
+
+    .big-option-btn {
+      flex: 1 1 200px;
+      background: #fff;
+      border: 2px solid #ef8f8f;
+      border-radius: 16px;
+      color: #ef8f8f;
+      font-size: 1.5em;
+      font-weight: bold;
+      padding: 2em 1em;
+      margin: 0 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(239, 143, 143, 0.07);
+      transition: background 0.2s, color 0.2s, transform 0.15s;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .big-option-btn:hover {
+      background: #ef8f8f;
+      color: #fff;
+      transform: translateY(-4px) scale(1.03);
+    }
+
+    .welcome-text {
+      text-align: center;
+      color: #888;
+      margin-bottom: 2em;
+      font-size: 1.1em;
+    }
+
+    @media (max-width: 700px) {
+      .big-options {
+        flex-direction: column;
+        gap: 1.5em;
+      }
+
+      .big-option-btn {
+        margin: 0;
+        font-size: 1.2em;
+        padding: 1.5em 0.5em;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-bar" id="headerBar"></div>
+  <div class="main-title">生活書寫平台</div>
+  <div class="tab-content active" id="loginTab">
+    <form id="loginForm">
+      <h3 style="text-align:center;color:#ef8f8f;">登入</h3>
+      <input type="text" name="login_username" placeholder="帳號" style="width:100%;margin-bottom:1em;"><br>
+      <input type="password" name="login_password" placeholder="密碼" style="width:100%;margin-bottom:1em;"><br>
+      <button type="submit" style="width:100%;">登入</button>
+    </form>
+  </div>
+  <div class="tab-content" id="registerTab">
+    <form id="registerForm">
+      <h3 style="text-align:center;color:#ef8f8f;">註冊</h3>
+      <input type="text" name="reg_username" placeholder="帳號" style="width:100%;margin-bottom:1em;"><br>
+      <input type="password" name="reg_password" placeholder="密碼" style="width:100%;margin-bottom:1em;"><br>
+      <button type="submit" style="width:100%;">註冊</button>
+    </form>
+  </div>
+  <div class="welcome-text">歡迎來到Rommi的生活書寫平台！</div>
+  <div class="big-options">
+    <a href="diary.html" class="big-option-btn">
+      <span style="font-size:2em;">📔</span>
+      個人日記
+    </a>
+    <a href="blog.html" class="big-option-btn">
+      <span style="font-size:2em;">📝</span>
+      部落格
+    </a>
+  </div>
+  <script>
+    // 動態產生右上角登入/註冊或帳號/登出
+    function renderHeaderBar() {
+      const headerBar = document.getElementById('headerBar');
+      headerBar.innerHTML = '';
+      const user_id = localStorage.getItem('user_id');
+      const username = localStorage.getItem('username');
+      if (user_id && username) {
+        // 已登入，顯示帳號與登出
+        const userInfo = document.createElement('span');
+        userInfo.className = 'user-info';
+        userInfo.textContent = `您好，${username}`;
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'logout-btn';
+        logoutBtn.textContent = '登出';
+        logoutBtn.onclick = function () {
+          localStorage.removeItem('user_id');
+          localStorage.removeItem('username');
+          location.reload();
+        };
+        headerBar.appendChild(userInfo);
+        headerBar.appendChild(logoutBtn);
+      } else {
+        // 未登入，顯示登入/註冊（分頁切換）
+        const loginTabBtn = document.createElement('button');
+        loginTabBtn.className = 'tab-btn active';
+        loginTabBtn.textContent = '登入';
+        loginTabBtn.onclick = function () {
+          document.getElementById('loginTab').classList.add('active');
+          document.getElementById('registerTab').classList.remove('active');
+          loginTabBtn.classList.add('active');
+          registerTabBtn.classList.remove('active');
+        };
+        const registerTabBtn = document.createElement('button');
+        registerTabBtn.className = 'tab-btn';
+        registerTabBtn.textContent = '註冊';
+        registerTabBtn.onclick = function () {
+          document.getElementById('loginTab').classList.remove('active');
+          document.getElementById('registerTab').classList.add('active');
+          loginTabBtn.classList.remove('active');
+          registerTabBtn.classList.add('active');
+        };
+        headerBar.appendChild(loginTabBtn);
+        headerBar.appendChild(registerTabBtn);
+      }
+    }
+    renderHeaderBar();
+
+    // 註冊功能
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const username = this.reg_username.value;
+      const password = this.reg_password.value;
+      if (!username || !password) {
+        alert('請輸入帳號和密碼');
+        return;
+      }
+      fetch('/addUser', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password_hash: password })
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            alert('註冊成功！');
+            this.reset();
+            // 註冊後自動切換到登入分頁
+            renderHeaderBar();
+            document.getElementById('loginTab').classList.add('active');
+            document.getElementById('registerTab').classList.remove('active');
+            document.querySelector('.tab-btn.active').classList.remove('active');
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+          } else {
+            alert('註冊失敗：' + (result.message || '未知錯誤'));
+          }
+        });
+    });
+
+    // 登入功能
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const username = this.login_username.value;
+      const password = this.login_password.value;
+      if (!username || !password) {
+        alert('請輸入帳號和密碼');
+        return;
+      }
+      fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            alert('登入成功！');
+            localStorage.setItem('user_id', result.user_id);
+            localStorage.setItem('username', username); // 儲存帳號名稱
+            renderHeaderBar();
+            document.getElementById('loginTab').classList.remove('active');
+            document.getElementById('registerTab').classList.remove('active');
+          } else {
+            alert('登入失敗：' + (result.message || '未知錯誤'));
+          }
+        });
+    });
+  </script>
+</body>
+
+</html>

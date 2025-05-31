@@ -1,0 +1,230 @@
+body {
+    font-family: 'Microsoft JhengHei', 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f9f6f2;
+    color: #333;
+}
+
+h1, h2, h3 {
+    text-align: center;
+    color: #ef8f8f;
+    letter-spacing: 2px;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+h2 {
+    color: #888;
+    letter-spacing: 1px;
+    margin-top: 2em;
+    margin-bottom: 1em;
+}
+
+a {
+    color: #ef8f8f;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+a:hover {
+    color: #e06b6b;
+    text-decoration: underline;
+}
+
+/* 卡片區塊 */
+.cardLayout, form {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(239,143,143,0.08);
+    padding: 2em 1.5em;
+    max-width: 500px;
+    margin: 2em auto 2em auto;
+}
+
+/* 表單欄位 */
+input[type="text"], input[type="password"], input[type="url"], input[type="date"], select, textarea {
+    width: 100%;
+    padding: 0.6em;
+    margin-top: 0.3em;
+    margin-bottom: 1em;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1em;
+    background: #fafafa;
+    box-sizing: border-box;
+    transition: border 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+    border: 1.5px solid #ef8f8f;
+    outline: none;
+}
+
+/* 按鈕 */
+button, input[type="submit"] {
+    background: #ef8f8f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.7em 1.5em;
+    font-size: 1em;  
+    cursor: pointer;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    transition: background 0.2s;
+}
+button:hover, input[type="submit"]:hover {
+    background: #e06b6b;
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(239,143,143,0.07);
+}
+th, td {
+    padding: 0.9em;
+    text-align: center;
+}
+th {
+    background: #fbeaea;
+    color: #ef8f8f;
+    font-weight: bold;
+}
+tr:nth-child(even) {
+    background: #f9f6f2;
+}
+
+/* 部落格文章 */
+.post {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(239,143,143,0.07);
+    margin-bottom: 1.5em;
+    padding: 1.2em 1.5em;
+    border-left: 5px solid #ef8f8f;
+    transition: box-shadow 0.2s;
+}
+.post:hover {
+    box-shadow: 0 4px 16px rgba(239,143,143,0.13);
+}
+.cover {
+  width: 100px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.cover:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 16px rgba(239,143,143,0.25);
+  z-index: 10;
+}
+
+.tags {
+    color: #888;
+    font-size: 0.95em;
+    margin-bottom: 0.5em;
+}
+
+/* 日記項目 */
+.diary-item {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(239,143,143,0.07);
+    border-left: 5px solid #ef8f8f;
+    margin-bottom: 1.2em;
+    padding: 1em 1.2em;
+    transition: box-shadow 0.2s;
+}
+.diary-item:hover {
+    box-shadow: 0 4px 16px rgba(239,143,143,0.13);
+}
+.diary-item b {
+    color: #ef8f8f;
+    font-size: 1.08em;
+}
+
+/* 響應式設計 */
+@media (max-width: 700px) {
+    .cardLayout, form {
+        padding: 1em 0.5em;
+        max-width: 98vw;
+    }
+    .cover {
+        width: 80px;
+        height: 48px;
+    }
+}
+
+/* 分頁按鈕與日記卡片美化 */
+#pagination button {
+  background: #ef8f8f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4em 1em;
+  margin: 0.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#pagination button:disabled {
+  background: #fbeaea;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.edit-btn, .delete-btn {
+  background: #fff;
+  border: 1px solid #ef8f8f;
+  color: #ef8f8f;
+  border-radius: 6px;
+  padding: 0.3em 0.8em;
+  margin-left: 0.3em;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.edit-btn:hover, .delete-btn:hover {
+  background: #ef8f8f;
+  color: #fff;
+}
+
+#pagination button {
+  background: #ef8f8f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4em 1em;
+  margin: 0.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#pagination button:disabled {
+  background: #fbeaea;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.toggle-btn {
+  background: #fff;
+  border: 1px solid #ef8f8f;
+  color: #ef8f8f;
+  border-radius: 6px;
+  padding: 0.3em 0.8em;
+  margin: 0.5em 0;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.toggle-btn:hover {
+  background: #ef8f8f;
+  color: #fff;
+}
