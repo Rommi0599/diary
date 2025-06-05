@@ -17,12 +17,16 @@ const dbPath = path.join(__dirname, 'diary.db');
 // 建立 SQLite 連線
 const db = new sqlite3.Database(dbPath);
 
-// GET 管理員頁面
+//
+// ===== 管理員相關 =====
+//
+
+// 管理員後台頁面
 app.get('/user', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
-// 取得所有管理員資料（原 users -> admin）
+// 取得所有管理員資料
 app.get('/users', (req, res) => {
   db.all('SELECT id, username, created_at, is_admin FROM admin', (err, rows) => {
     if (err) {
@@ -33,7 +37,7 @@ app.get('/users', (req, res) => {
   });
 });
 
-// 新增管理員（原新增使用者）
+// 新增管理員
 app.post('/addUser', (req, res) => {
   const newUser = req.body;
   const query = 'INSERT INTO admin (username, password_hash, is_admin) VALUES (?, ?, ?)';
@@ -47,6 +51,57 @@ app.post('/addUser', (req, res) => {
     }
   });
 });
+
+// 刪除管理員
+app.delete('/user/:id', (req, res) => {
+  const id = req.params.id;
+  db.run('DELETE FROM admin WHERE id = ?', [id], function (err) {
+    if (err) return res.json({ success: false, message: '刪除失敗' });
+    res.json({ success: true });
+  });
+});
+
+// 修改管理員（可改密碼與管理員身分）
+app.put('/user/:id', (req, res) => {
+  const id = req.params.id;
+  const { password_hash, is_admin } = req.body;
+  if (password_hash !== undefined) {
+    db.run('UPDATE admin SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
+      if (err) return res.json({ success: false, message: '修改失敗' });
+      res.json({ success: true });
+    });
+  } else if (is_admin !== undefined) {
+    db.run('UPDATE admin SET is_admin = ? WHERE id = ?', [is_admin, id], function (err) {
+      if (err) return res.json({ success: false, message: '修改失敗' });
+      res.json({ success: true });
+    });
+  } else {
+    res.json({ success: false, message: '未指定修改內容' });
+  }
+});
+
+//
+// ===== 登入/登出 =====
+//
+
+// 登入驗證（回傳 is_admin）
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const sql = 'SELECT * FROM admin WHERE username = ? AND password_hash = ?';
+  db.get(sql, [username, password], (err, user) => {
+    if (err) {
+      res.status(500).json({ success: false, message: '伺服器錯誤' });
+    } else if (user) {
+      res.json({ success: true, message: '登入成功', user_id: user.id, username: user.username, is_admin: user.is_admin });
+    } else {
+      res.json({ success: false, message: '帳號或密碼錯誤' });
+    }
+  });
+});
+
+//
+// ===== 部落格相關 =====
+//
 
 // 新增部落格文章
 app.post('/addBlog', (req, res) => {
@@ -62,7 +117,7 @@ app.post('/addBlog', (req, res) => {
   });
 });
 
-// 取得所有部落格文章（含作者名稱，users 改 admin）
+// 取得所有部落格文章（含作者名稱）
 app.get('/blogs', (req, res) => {
   db.all(
     `SELECT blogs.*, admin.username 
@@ -102,6 +157,10 @@ app.put('/blog/:id', (req, res) => {
   );
 });
 
+//
+// ===== 日記相關 =====
+//
+
 // 新增日記
 app.post('/addDiary', (req, res) => {
   const { user_id, date, mood_score, mood_describe, content } = req.body;
@@ -128,21 +187,6 @@ app.get('/diaries', (req, res) => {
   });
 });
 
-// 登入驗證（回傳 is_admin，users 改 admin）
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const sql = 'SELECT * FROM admin WHERE username = ? AND password_hash = ?';
-  db.get(sql, [username, password], (err, user) => {
-    if (err) {
-      res.status(500).json({ success: false, message: '伺服器錯誤' });
-    } else if (user) {
-      res.json({ success: true, message: '登入成功', user_id: user.id, username: user.username, is_admin: user.is_admin });
-    } else {
-      res.json({ success: false, message: '帳號或密碼錯誤' });
-    }
-  });
-});
-
 // 刪除日記
 app.delete('/diary/:id', (req, res) => {
   const id = req.params.id;
@@ -162,33 +206,9 @@ app.put('/diary/:id', (req, res) => {
   });
 });
 
-// 刪除管理員（原刪除使用者）
-app.delete('/user/:id', (req, res) => {
-  const id = req.params.id;
-  db.run('DELETE FROM admin WHERE id = ?', [id], function (err) {
-    if (err) return res.json({ success: false, message: '刪除失敗' });
-    res.json({ success: true });
-  });
-});
-
-// 修改管理員（可改密碼與管理員身分）
-app.put('/user/:id', (req, res) => {
-  const id = req.params.id;
-  const { password_hash, is_admin } = req.body;
-  if (password_hash !== undefined) {
-    db.run('UPDATE admin SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
-      if (err) return res.json({ success: false, message: '修改失敗' });
-      res.json({ success: true });
-    });
-  } else if (is_admin !== undefined) {
-    db.run('UPDATE admin SET is_admin = ? WHERE id = ?', [is_admin, id], function (err) {
-      if (err) return res.json({ success: false, message: '修改失敗' });
-      res.json({ success: true });
-    });
-  } else {
-    res.json({ success: false, message: '未指定修改內容' });
-  }
-});
+//
+// ===== 留言相關 =====
+//
 
 // 新增留言
 app.post('/addComment', (req, res) => {
@@ -203,7 +223,7 @@ app.post('/addComment', (req, res) => {
   );
 });
 
-// 取得留言（users 改 admin）
+// 取得留言
 app.get('/comments', (req, res) => {
   const blog_id = req.query.blog_id;
   db.all(
