@@ -17,14 +17,14 @@ const dbPath = path.join(__dirname, 'diary.db');
 // 建立 SQLite 連線
 const db = new sqlite3.Database(dbPath);
 
-// GET 使用者頁面
+// GET 管理員頁面
 app.get('/user', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'user.html'));
+  res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
-// 取得所有使用者資料
+// 取得所有管理員資料（原 users -> admin）
 app.get('/users', (req, res) => {
-  db.all('SELECT id, username, created_at, is_admin FROM users', (err, rows) => {
+  db.all('SELECT id, username, created_at, is_admin FROM admin', (err, rows) => {
     if (err) {
       console.error('查詢錯誤:', err);
       return res.status(500).json({ success: false, message: '伺服器錯誤' });
@@ -33,14 +33,14 @@ app.get('/users', (req, res) => {
   });
 });
 
-// 新增使用者
+// 新增管理員（原新增使用者）
 app.post('/addUser', (req, res) => {
   const newUser = req.body;
-  const query = 'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)';
+  const query = 'INSERT INTO admin (username, password_hash, is_admin) VALUES (?, ?, ?)';
   const values = [newUser.username, newUser.password_hash, newUser.is_admin || 0];
   db.run(query, values, function (err) {
     if (err) {
-      console.error('Error adding user to SQLite:', err);
+      console.error('Error adding admin to SQLite:', err);
       res.status(500).json({ success: false, message: '新增失敗' });
     } else {
       res.json({ success: true, message: 'User added successfully.', id: this.lastID });
@@ -62,12 +62,12 @@ app.post('/addBlog', (req, res) => {
   });
 });
 
-// 取得所有部落格文章（含作者名稱）
+// 取得所有部落格文章（含作者名稱，users 改 admin）
 app.get('/blogs', (req, res) => {
   db.all(
-    `SELECT blogs.*, users.username 
+    `SELECT blogs.*, admin.username 
      FROM blogs 
-     LEFT JOIN users ON blogs.user_id = users.id 
+     LEFT JOIN admin ON blogs.user_id = admin.id 
      ORDER BY blogs.created_at DESC`,
     (err, rows) => {
       if (err) {
@@ -102,7 +102,7 @@ app.put('/blog/:id', (req, res) => {
   );
 });
 
-// 新增日記（已將 mood_emoji 改為 mood_describe）
+// 新增日記
 app.post('/addDiary', (req, res) => {
   const { user_id, date, mood_score, mood_describe, content } = req.body;
   const sql = `INSERT INTO diaries (user_id, date, mood_score, mood_describe, content)
@@ -128,10 +128,10 @@ app.get('/diaries', (req, res) => {
   });
 });
 
-// 登入驗證（回傳 is_admin）
+// 登入驗證（回傳 is_admin，users 改 admin）
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  const sql = 'SELECT * FROM users WHERE username = ? AND password_hash = ?';
+  const sql = 'SELECT * FROM admin WHERE username = ? AND password_hash = ?';
   db.get(sql, [username, password], (err, user) => {
     if (err) {
       res.status(500).json({ success: false, message: '伺服器錯誤' });
@@ -162,26 +162,26 @@ app.put('/diary/:id', (req, res) => {
   });
 });
 
-// 刪除使用者
+// 刪除管理員（原刪除使用者）
 app.delete('/user/:id', (req, res) => {
   const id = req.params.id;
-  db.run('DELETE FROM users WHERE id = ?', [id], function (err) {
+  db.run('DELETE FROM admin WHERE id = ?', [id], function (err) {
     if (err) return res.json({ success: false, message: '刪除失敗' });
     res.json({ success: true });
   });
 });
 
-// 修改使用者（可改密碼與管理員身分）
+// 修改管理員（可改密碼與管理員身分）
 app.put('/user/:id', (req, res) => {
   const id = req.params.id;
   const { password_hash, is_admin } = req.body;
   if (password_hash !== undefined) {
-    db.run('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
+    db.run('UPDATE admin SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
       if (err) return res.json({ success: false, message: '修改失敗' });
       res.json({ success: true });
     });
   } else if (is_admin !== undefined) {
-    db.run('UPDATE users SET is_admin = ? WHERE id = ?', [is_admin, id], function (err) {
+    db.run('UPDATE admin SET is_admin = ? WHERE id = ?', [is_admin, id], function (err) {
       if (err) return res.json({ success: false, message: '修改失敗' });
       res.json({ success: true });
     });
@@ -203,11 +203,11 @@ app.post('/addComment', (req, res) => {
   );
 });
 
-// 取得留言
+// 取得留言（users 改 admin）
 app.get('/comments', (req, res) => {
   const blog_id = req.query.blog_id;
   db.all(
-    `SELECT comments.*, users.username FROM comments LEFT JOIN users ON comments.user_id = users.id WHERE blog_id = ? ORDER BY created_at ASC`,
+    `SELECT comments.*, admin.username FROM comments LEFT JOIN admin ON comments.user_id = admin.id WHERE blog_id = ? ORDER BY created_at ASC`,
     [blog_id],
     (err, rows) => {
       if (err) return res.json({ comments: [] });
