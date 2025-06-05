@@ -73,11 +73,14 @@
   </div>
   <script>
     // 檢查是否為管理員
+    // 只有 is_admin = 1 的使用者能進入此頁
     if (localStorage.getItem('is_admin') !== '1') {
       document.body.innerHTML = '<h2 style="color:red;text-align:center;">無權限</h2>';
       throw new Error('Not admin');
     }
-
+    // 當頁面載入完成後，執行以下函式
+    // 取得使用者資料並顯示在表格中
+    // 並綁定新增使用者按鈕的事件
     document.addEventListener("DOMContentLoaded", function () {
       fetchData();
       document.getElementById("refreshButton").addEventListener("click", fetchData);
@@ -85,11 +88,11 @@
     });
 
     function fetchData() {
-      fetch("/users")
+      fetch("/users")  // 從後端取得使用者資料
         .then(res => res.json())
         .then(result => {
-          const data = result.users;
-          const tableBody = document.querySelector("#userTable tbody");
+          const data = result.users;  
+          const tableBody = document.querySelector("#userTable tbody");  // 取得表格的 tbody 元素
           tableBody.innerHTML = "";
           data.forEach(user => {
             const row = document.createElement("tr");
@@ -109,26 +112,34 @@
         });
     }
 
+    // 新增使用者
     function addUser() {
+      // 取得使用者輸入的帳號與密碼
+      // 如果帳號或密碼為空，則顯示提示訊息
       const username = document.getElementById("Username").value.trim();
       const password = document.getElementById("Password").value.trim();
       if (!username || !password) {
         alert("請填寫帳號與密碼！");
         return;
       }
+      // 使用 fetch API 發送 POST 請求到 /addUser 路徑
+      // 將帳號與密碼轉換為 JSON 格式並發送
       fetch("/addUser", {
-        method: "POST",
+        method: "POST",  // 使用 POST 方法新增使用者
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username, password_hash: password })
       })
-        .then(res => res.json())
-        .then(() => {
+        .then(res => res.json())  
+        .then(() => { 
+          // 新增成功後，清空輸入欄位並重新載入使用者資料
           document.getElementById("Username").value = "";
           document.getElementById("Password").value = "";
           fetchData();
         });
     }
 
+    // 刪除使用者
+    // 透過使用者 ID 發送 DELETE 請求到 /user/{id} 路徑
     function deleteUser(id) {
       if (!confirm("確定要刪除此使用者嗎？")) return;
       fetch(`/user/${id}`, { method: "DELETE" })
@@ -136,18 +147,20 @@
     }
 
     function editUser(id, username) {
+      // 提示使用者輸入新密碼
       const newPwd = prompt(`請輸入帳號「${username}」的新密碼：`);
       if (!newPwd) return;
       fetch(`/user/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ password_hash: newPwd })
       })
         .then(() => fetchData());
     }
 
     function toggleAdmin(id, isAdmin) {
-      const toAdmin = isAdmin ? 0 : 1;
+      // 切換使用者的管理員權限
+      const toAdmin = isAdmin ? 0 : 1;  
       fetch(`/user/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

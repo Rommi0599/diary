@@ -37,13 +37,13 @@
 
     // 取得所有文章並顯示
     function fetchBlogs() {
-      fetch('/blogs')
+      fetch('/blogs')  
         .then(res => res.json())
         .then(data => {
           blogs = data.blogs;
-          currentPage = 1;
-          renderBlogs();
-          renderCategoryOptions();
+          currentPage = 1; // 重置頁碼
+          renderBlogs();  // 渲染文章列表
+          renderCategoryOptions();  // 渲染分類選單
         });
     }
 
@@ -60,22 +60,25 @@
     // 渲染文章列表
     function renderBlogs() {
       const category = document.getElementById('categoryFilter')?.value || '';
-      let filtered = blogs;
+      let filtered = blogs;// 先取得所有文章
       if (category) {
+        // 如果有選擇分類，則過濾文章
         filtered = filtered.filter(b => b.category === category);
       }
-      const total = filtered.length;
-      const totalPages = Math.ceil(total / pageSize) || 1;
-      if (currentPage > totalPages) currentPage = totalPages;
-      const start = (currentPage - 1) * pageSize;
-      const pageData = filtered.slice(start, start + pageSize);
+      const total = filtered.length;  // 總文章數
+      const totalPages = Math.ceil(total / pageSize) || 1;  // 總頁數
+      if (currentPage > totalPages) currentPage = totalPages; // 確保當前頁碼不超過總頁數
+      const start = (currentPage - 1) * pageSize;  // 計算當前頁的起始索引
+      const pageData = filtered.slice(start, start + pageSize); // 取得當前頁的文章數據
 
-      const blogList = document.getElementById('blogList');
-      blogList.innerHTML = '';
+      const blogList = document.getElementById('blogList'); // 取得文章列表容器
+      blogList.innerHTML = '';  // 清空之前的內容
       if (pageData.length === 0) {
+        // 如果當前頁沒有文章，顯示查無資料
         blogList.innerHTML = '<div style="color:#888;text-align:center;">查無資料</div>';
       }
       pageData.forEach(blog => {
+        // 為每篇文章創建一個 div 元素
         const div = document.createElement('div');
         div.className = 'post';
         div.innerHTML = `
@@ -152,7 +155,7 @@
         box.innerHTML = list.map(c =>
           `<div style="border-bottom:1px solid #eee;padding:0.3em 0;">
             <b style="color:#ef8f8f;">${c.username || '匿名'}</b>：${c.content}
-            <span style="color:#aaa;font-size:0.85em;margin-left:1em;">${c.created_at ? c.created_at.slice(0,16).replace('T',' ') : ''}</span>
+            <span style="color:#aaa;font-size:0.85em;margin-left:1em;">${c.created_at ? c.created_at.slice(0, 16).replace('T', ' ') : ''}</span>
           </div>`
         ).join('');
       }
@@ -256,7 +259,7 @@
     document.addEventListener('DOMContentLoaded', fetchBlogs);
 
     // 圖片放大（點擊彈窗）
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       if (e.target.classList.contains('cover')) {
         const src = e.target.src;
         let modal = document.getElementById('imgModal');
@@ -267,7 +270,7 @@
           modal.innerHTML = `<img id="modalImg" style="max-width:90vw;max-height:80vh;border-radius:10px;box-shadow:0 0 20px #000;">
             <span style="position:absolute;top:30px;right:50px;font-size:2em;color:#fff;cursor:pointer;" id="closeModal">&times;</span>`;
           document.body.appendChild(modal);
-          modal.addEventListener('click', function(ev) {
+          modal.addEventListener('click', function (ev) {
             if (ev.target === modal || ev.target.id === 'closeModal') modal.style.display = 'none';
           });
         }
@@ -277,4 +280,5 @@
     });
   </script>
 </body>
+
 </html>
