@@ -21,7 +21,7 @@
       </select>
     </label><br><br>
     <label>心情：
-      <input type="text" name="emoji" placeholder="例如：超開心">
+      <input type="text" name="describe" placeholder="例如：開心、緊張、疲倦">
     </label><br><br>
     <label>日記內容：<br>
       <textarea name="content" rows="4" cols="40"></textarea>
@@ -58,7 +58,7 @@
         user_id: user_id,
         date: form.date.value,
         mood_score: form.score.value,
-        mood_emoji: form.emoji.value,
+        mood_describe: form.describe.value,
         content: form.content.value
       };
       fetch('/addDiary', {
@@ -104,7 +104,7 @@
         filtered = filtered.filter(d => d.date === searchDate);
       }
       if (keyword) {
-        filtered = filtered.filter(d => d.content.includes(keyword) || (d.mood_emoji && d.mood_emoji.includes(keyword)));
+        filtered = filtered.filter(d => d.content.includes(keyword) || (d.mood_describe && d.mood_describe.includes(keyword)));
       }
       const total = filtered.length;
       const totalPages = Math.ceil(total / pageSize) || 1;
@@ -125,7 +125,7 @@
             <div>
               <b style="color:#ef8f8f;font-size:1.1em;">${diary.date}</b>
               <span style="margin-left:1em;">心情分數：<b>${diary.mood_score}</b></span>
-              <span style="margin-left:1em;">${diary.mood_emoji ? 'Emoji：<b>' + diary.mood_emoji + '</b>' : ''}</span>
+              <span style="margin-left:1em;">${diary.mood_describe ? 'describe：<b>' + diary.mood_describe + '</b>' : ''}</span>
             </div>
             <div>
               <button class="edit-btn" onclick="editDiary(${diary.id})">編輯</button>

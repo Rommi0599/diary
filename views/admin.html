@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>管理員後台</title>
+  <link href="stylesheet.css" rel="stylesheet">
+  <style>
+    .cardLayout {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      max-width: 900px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #e3c5c5;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .action-buttons button {
+      margin: 2px;
+    }
+    .back-home {
+      display: inline-block;
+      margin: 20px 0 0 20px;
+      padding: 8px 24px;
+      background: #ef8f8f;
+      color: #fff;
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.1em;
+      transition: background 0.2s;
+    }
+    .back-home:hover {
+      background: #d86b6b;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-home">← 回主頁</a>
+  <h1>管理員後台</h1>
+  <div class="cardLayout">
+    <h2><b>使用者管理</b></h2>
+    <div>
+      <input type="text" id="Username" placeholder="帳號">
+      <input type="text" id="Password" placeholder="密碼">
+      <button id="addUserButton">新增使用者</button>
+      <button id="refreshButton">重新整理資料</button>
+    </div>
+    <table id="userTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>帳號</th>
+          <th>建立時間</th>
+          <th>管理員</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <script>
+    // 檢查是否為管理員
+    if (localStorage.getItem('is_admin') !== '1') {
+      document.body.innerHTML = '<h2 style="color:red;text-align:center;">無權限</h2>';
+      throw new Error('Not admin');
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      fetchData();
+      document.getElementById("refreshButton").addEventListener("click", fetchData);
+      document.getElementById("addUserButton").addEventListener("click", addUser);
+    });
+
+    function fetchData() {
+      fetch("/users")
+        .then(res => res.json())
+        .then(result => {
+          const data = result.users;
+          const tableBody = document.querySelector("#userTable tbody");
+          tableBody.innerHTML = "";
+          data.forEach(user => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${user.id}</td>
+              <td>${user.username}</td>
+              <td>${user.created_at}</td>
+              <td>${user.is_admin ? '✔️' : ''}</td>
+              <td class="action-buttons">
+                <button onclick="deleteUser(${user.id})">刪除</button>
+                <button onclick="editUser(${user.id}, '${user.username}')">修改密碼</button>
+                <button onclick="toggleAdmin(${user.id}, ${user.is_admin ? 1 : 0})">${user.is_admin ? '取消管理員' : '設為管理員'}</button>
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+        });
+    }
+
+    function addUser() {
+      const username = document.getElementById("Username").value.trim();
+      const password = document.getElementById("Password").value.trim();
+      if (!username || !password) {
+        alert("請填寫帳號與密碼！");
+        return;
+      }
+      fetch("/addUser", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username, password_hash: password })
+      })
+        .then(res => res.json())
+        .then(() => {
+          document.getElementById("Username").value = "";
+          document.getElementById("Password").value = "";
+          fetchData();
+        });
+    }
+
+    function deleteUser(id) {
+      if (!confirm("確定要刪除此使用者嗎？")) return;
+      fetch(`/user/${id}`, { method: "DELETE" })
+        .then(() => fetchData());
+    }
+
+    function editUser(id, username) {
+      const newPwd = prompt(`請輸入帳號「${username}」的新密碼：`);
+      if (!newPwd) return;
+      fetch(`/user/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password_hash: newPwd })
+      })
+        .then(() => fetchData());
+    }
+
+    function toggleAdmin(id, isAdmin) {
+      const toAdmin = isAdmin ? 0 : 1;
+      fetch(`/user/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_admin: toAdmin })
+      })
+        .then(() => fetchData());
+    }
+  </script>
+</body>
+</html>

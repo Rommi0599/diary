@@ -24,7 +24,7 @@ app.get('/user', (req, res) => {
 
 // 取得所有使用者資料
 app.get('/users', (req, res) => {
-  db.all('SELECT id, username, created_at FROM users', (err, rows) => {
+  db.all('SELECT id, username, created_at, is_admin FROM users', (err, rows) => {
     if (err) {
       console.error('查詢錯誤:', err);
       return res.status(500).json({ success: false, message: '伺服器錯誤' });
@@ -36,8 +36,8 @@ app.get('/users', (req, res) => {
 // 新增使用者
 app.post('/addUser', (req, res) => {
   const newUser = req.body;
-  const query = 'INSERT INTO users (username, password_hash) VALUES (?, ?)';
-  const values = [newUser.username, newUser.password_hash];
+  const query = 'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)';
+  const values = [newUser.username, newUser.password_hash, newUser.is_admin || 0];
   db.run(query, values, function (err) {
     if (err) {
       console.error('Error adding user to SQLite:', err);
@@ -102,12 +102,12 @@ app.put('/blog/:id', (req, res) => {
   );
 });
 
-// 新增日記
+// 新增日記（已將 mood_emoji 改為 mood_describe）
 app.post('/addDiary', (req, res) => {
-  const { user_id, date, mood_score, mood_emoji, content } = req.body;
-  const sql = `INSERT INTO diaries (user_id, date, mood_score, mood_emoji, content)
+  const { user_id, date, mood_score, mood_describe, content } = req.body;
+  const sql = `INSERT INTO diaries (user_id, date, mood_score, mood_describe, content)
                VALUES (?, ?, ?, ?, ?)`;
-  db.run(sql, [user_id, date, mood_score, mood_emoji, content], function (err) {
+  db.run(sql, [user_id, date, mood_score, mood_describe, content], function (err) {
     if (err) {
       res.status(500).json({ success: false, message: '新增失敗' });
     } else {
@@ -128,7 +128,7 @@ app.get('/diaries', (req, res) => {
   });
 });
 
-// 登入驗證
+// 登入驗證（回傳 is_admin）
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const sql = 'SELECT * FROM users WHERE username = ? AND password_hash = ?';
@@ -136,7 +136,7 @@ app.post('/login', (req, res) => {
     if (err) {
       res.status(500).json({ success: false, message: '伺服器錯誤' });
     } else if (user) {
-      res.json({ success: true, message: '登入成功', user_id: user.id });
+      res.json({ success: true, message: '登入成功', user_id: user.id, username: user.username, is_admin: user.is_admin });
     } else {
       res.json({ success: false, message: '帳號或密碼錯誤' });
     }
@@ -171,14 +171,23 @@ app.delete('/user/:id', (req, res) => {
   });
 });
 
-// 修改使用者（只改密碼為例）
+// 修改使用者（可改密碼與管理員身分）
 app.put('/user/:id', (req, res) => {
   const id = req.params.id;
-  const { password_hash } = req.body;
-  db.run('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
-    if (err) return res.json({ success: false, message: '修改失敗' });
-    res.json({ success: true });
-  });
+  const { password_hash, is_admin } = req.body;
+  if (password_hash !== undefined) {
+    db.run('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
+      if (err) return res.json({ success: false, message: '修改失敗' });
+      res.json({ success: true });
+    });
+  } else if (is_admin !== undefined) {
+    db.run('UPDATE users SET is_admin = ? WHERE id = ?', [is_admin, id], function (err) {
+      if (err) return res.json({ success: false, message: '修改失敗' });
+      res.json({ success: true });
+    });
+  } else {
+    res.json({ success: false, message: '未指定修改內容' });
+  }
 });
 
 // 新增留言

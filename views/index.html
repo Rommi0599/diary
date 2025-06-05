@@ -177,6 +177,7 @@
         logoutBtn.onclick = function () {
           localStorage.removeItem('user_id');
           localStorage.removeItem('username');
+          localStorage.removeItem('is_admin');
           location.reload();
         };
         headerBar.appendChild(userInfo);
@@ -255,17 +256,42 @@
         .then(res => res.json())
         .then(result => {
           if (result.success) {
-            alert('登入成功！');
+            // 這裡要同時存 is_admin
             localStorage.setItem('user_id', result.user_id);
-            localStorage.setItem('username', username); // 儲存帳號名稱
+            localStorage.setItem('username', result.username);
+            localStorage.setItem('is_admin', result.is_admin ? '1' : '0');
+            alert('登入成功！');
             renderHeaderBar();
             document.getElementById('loginTab').classList.remove('active');
             document.getElementById('registerTab').classList.remove('active');
+            // 顯示管理員後台按鈕（如果是管理員）
+            if (result.is_admin) {
+              let adminBtn = document.querySelector('.big-options .admin-btn');
+              if (!adminBtn) {
+                adminBtn = document.createElement('a');
+                adminBtn.href = 'admin.html';
+                adminBtn.textContent = '管理員後台';
+                adminBtn.className = 'big-option-btn admin-btn';
+                document.querySelector('.big-options').appendChild(adminBtn);
+              }
+            }
           } else {
             alert('登入失敗：' + (result.message || '未知錯誤'));
           }
         });
     });
+
+    // 頁面載入時，如果已登入且是管理員，顯示管理員後台按鈕
+    if (localStorage.getItem('is_admin') === '1') {
+      let adminBtn = document.querySelector('.big-options .admin-btn');
+      if (!adminBtn) {
+        adminBtn = document.createElement('a');
+        adminBtn.href = 'admin.html';
+        adminBtn.textContent = '管理員後台';
+        adminBtn.className = 'big-option-btn admin-btn';
+        document.querySelector('.big-options').appendChild(adminBtn);
+      }
+    }
   </script>
 </body>
 
