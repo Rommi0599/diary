@@ -160,7 +160,7 @@
     </a>
   </div>
   <script>
-    // 動態產生右上角登入/註冊或帳號/登出
+    // ===== 右上角登入/註冊/登出區塊 =====
     function renderHeaderBar() {
       const headerBar = document.getElementById('headerBar');
       headerBar.innerHTML = '';
@@ -183,7 +183,7 @@
         headerBar.appendChild(userInfo);
         headerBar.appendChild(logoutBtn);
       } else {
-        // 未登入，顯示登入/註冊（分頁切換）
+        // 未登入，顯示登入/註冊分頁切換
         const loginTabBtn = document.createElement('button');
         loginTabBtn.className = 'tab-btn active';
         loginTabBtn.textContent = '登入';
@@ -208,7 +208,7 @@
     }
     renderHeaderBar();
 
-    // 註冊功能
+    // ===== 註冊功能 =====
     document.getElementById('registerForm').addEventListener('submit', function (e) {
       e.preventDefault();
       const username = this.reg_username.value;
@@ -239,7 +239,7 @@
         });
     });
 
-    // 登入功能
+    // ===== 登入功能 =====
     document.getElementById('loginForm').addEventListener('submit', function (e) {
       e.preventDefault();
       const username = this.login_username.value;
@@ -256,7 +256,7 @@
         .then(res => res.json())
         .then(result => {
           if (result.success) {
-            // 這裡要同時存 is_admin
+            // 登入成功，將資訊存入 localStorage
             localStorage.setItem('user_id', result.user_id);
             localStorage.setItem('username', result.username);
             localStorage.setItem('is_admin', result.is_admin ? '1' : '0');
@@ -264,7 +264,7 @@
             renderHeaderBar();
             document.getElementById('loginTab').classList.remove('active');
             document.getElementById('registerTab').classList.remove('active');
-            // 顯示管理員後台按鈕（如果是管理員）
+            // 若為管理員，顯示管理員後台按鈕
             if (result.is_admin) {
               let adminBtn = document.querySelector('.big-options .admin-btn');
               if (!adminBtn) {
@@ -281,7 +281,7 @@
         });
     });
 
-    // 頁面載入時，如果已登入且是管理員，顯示管理員後台按鈕
+    // ===== 頁面載入時自動顯示管理員後台按鈕（如已登入且為管理員） =====
     if (localStorage.getItem('is_admin') === '1') {
       let adminBtn = document.querySelector('.big-options .admin-btn');
       if (!adminBtn) {
@@ -293,6 +293,7 @@
       }
     }
   </script>
+</body>
 </body>
 
 </html>

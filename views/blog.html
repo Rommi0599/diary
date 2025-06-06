@@ -30,24 +30,25 @@
   <div id="pagination" style="text-align:center;margin:1em 0;"></div>
   <a href="/index.html">回首頁</a>
   <script>
-    let blogs = [];
-    let comments = {};
-    let currentPage = 1;
-    const pageSize = 5;
+    // ====== 全域變數 ======
+    let blogs = [];         // 所有文章
+    let comments = {};      // 留言快取
+    let currentPage = 1;    // 當前頁碼
+    const pageSize = 5;     // 每頁顯示幾篇
 
-    // 取得所有文章並顯示
+    // ====== 取得所有文章 ======
     function fetchBlogs() {
-      fetch('/blogs')  
+      fetch('/blogs')
         .then(res => res.json())
         .then(data => {
           blogs = data.blogs;
           currentPage = 1; // 重置頁碼
-          renderBlogs();  // 渲染文章列表
-          renderCategoryOptions();  // 渲染分類選單
+          renderBlogs();   // 渲染文章列表
+          renderCategoryOptions(); // 渲染分類選單
         });
     }
 
-    // 取得留言
+    // ====== 取得留言 ======
     function fetchComments(blogId, callback) {
       fetch(`/comments?blog_id=${blogId}`)
         .then(res => res.json())
@@ -57,56 +58,53 @@
         });
     }
 
-    // 渲染文章列表
+    // ====== 渲染文章列表 ======
     function renderBlogs() {
       const category = document.getElementById('categoryFilter')?.value || '';
-      let filtered = blogs;// 先取得所有文章
+      let filtered = blogs;
       if (category) {
-        // 如果有選擇分類，則過濾文章
         filtered = filtered.filter(b => b.category === category);
       }
-      const total = filtered.length;  // 總文章數
-      const totalPages = Math.ceil(total / pageSize) || 1;  // 總頁數
-      if (currentPage > totalPages) currentPage = totalPages; // 確保當前頁碼不超過總頁數
-      const start = (currentPage - 1) * pageSize;  // 計算當前頁的起始索引
-      const pageData = filtered.slice(start, start + pageSize); // 取得當前頁的文章數據
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filtered.slice(start, start + pageSize);
 
-      const blogList = document.getElementById('blogList'); // 取得文章列表容器
-      blogList.innerHTML = '';  // 清空之前的內容
+      const blogList = document.getElementById('blogList');
+      blogList.innerHTML = '';
       if (pageData.length === 0) {
-        // 如果當前頁沒有文章，顯示查無資料
         blogList.innerHTML = '<div style="color:#888;text-align:center;">查無資料</div>';
       }
       pageData.forEach(blog => {
-        // 為每篇文章創建一個 div 元素
         const div = document.createElement('div');
         div.className = 'post';
         div.innerHTML = `
-        <img class="cover" src="${blog.cover_url || 'https://picsum.photos/100/60'}" alt="封面圖">
-        <strong>${blog.title}</strong>
-        <div class="tags">分類：${blog.category || ''}，標籤：${blog.tags || ''}</div>
-        <p class="summary">${blog.summary || ''}</p>
-        <div class="full-content" style="display:none;">${blog.content.replace(/\n/g, '<br>')}</div>
-        <button class="toggle-btn" onclick="toggleContent(this)">全文</button>
-        <div style="color:#aaa;font-size:0.9em;">
-          ${blog.created_at ? '發表於：' + blog.created_at : ''}　作者：${blog.username || ''}
-        </div>
-        ${blog.user_id == localStorage.getItem('user_id') ? `
-          <button onclick="editBlog(${blog.id})">編輯</button>
-          <button onclick="deleteBlog(${blog.id})">刪除</button>
-        ` : ''}
-        <div class="comments" id="comments-${blog.id}" style="margin-top:1em;"></div>
-        <form class="commentForm" data-blogid="${blog.id}" style="margin-top:0.5em;">
-          <input type="text" name="content" placeholder="留言..." style="width:60%;" required>
-          <button type="submit">送出留言</button>
-        </form>
-      `;
+          <img class="cover" src="${blog.cover_url || 'https://picsum.photos/100/60'}" alt="封面圖">
+          <strong>${blog.title}</strong>
+          <div class="tags">分類：${blog.category || ''}，標籤：${blog.tags || ''}</div>
+          <p class="summary">${blog.summary || ''}</p>
+          <div class="full-content" style="display:none;">${blog.content.replace(/\n/g, '<br>')}</div>
+          <button class="toggle-btn" onclick="toggleContent(this)">全文</button>
+          <div style="color:#aaa;font-size:0.9em;">
+            ${blog.created_at ? '發表於：' + blog.created_at : ''}　作者：${blog.username || ''}
+          </div>
+          ${blog.user_id == localStorage.getItem('user_id') ? `
+            <button onclick="editBlog(${blog.id})">編輯</button>
+            <button onclick="deleteBlog(${blog.id})">刪除</button>
+          ` : ''}
+          <div class="comments" id="comments-${blog.id}" style="margin-top:1em;"></div>
+          <form class="commentForm" data-blogid="${blog.id}" style="margin-top:0.5em;">
+            <input type="text" name="content" placeholder="留言..." style="width:60%;" required>
+            <button type="submit">送出留言</button>
+          </form>
+        `;
         blogList.appendChild(div);
         // 取得留言
         fetchComments(blog.id, () => renderComments(blog.id));
       });
 
-      // 分頁按鈕
+      // ====== 分頁按鈕 ======
       let pagHtml = `<span style="color:#888;">共 ${total} 筆，頁次 ${currentPage}/${totalPages}</span><br>`;
       pagHtml += `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首頁</button>`;
       pagHtml += `<button onclick="gotoPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一頁</button>`;
@@ -114,7 +112,7 @@
       pagHtml += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末頁</button>`;
       document.getElementById('pagination').innerHTML = pagHtml;
 
-      // 綁定留言表單送出事件
+      // ====== 綁定留言表單送出事件 ======
       document.querySelectorAll('.commentForm').forEach(form => {
         form.onsubmit = function (e) {
           e.preventDefault();
@@ -144,7 +142,7 @@
       });
     }
 
-    // 渲染留言
+    // ====== 渲染留言 ======
     function renderComments(blogId) {
       const box = document.getElementById('comments-' + blogId);
       const list = comments[blogId] || [];
@@ -161,13 +159,13 @@
       }
     }
 
-    // 分頁跳轉
+    // ====== 分頁跳轉 ======
     window.gotoPage = function (page) {
       currentPage = page;
       renderBlogs();
     };
 
-    // 展開/收合全文
+    // ====== 展開/收合全文 ======
     window.toggleContent = function (btn) {
       const summary = btn.parentElement.querySelector('.summary');
       const full = btn.parentElement.querySelector('.full-content');
@@ -182,7 +180,7 @@
       }
     };
 
-    // 分類選單
+    // ====== 分類選單 ======
     function renderCategoryOptions() {
       const categories = Array.from(new Set(blogs.map(b => b.category).filter(Boolean)));
       let html = `<select id="categoryFilter"><option value="">全部分類</option>`;
@@ -192,7 +190,7 @@
       document.getElementById('categoryFilter').onchange = () => { currentPage = 1; renderBlogs(); };
     }
 
-    // 文章發表
+    // ====== 文章發表 ======
     document.getElementById('blogForm').addEventListener('submit', function (e) {
       e.preventDefault();
       const form = e.target;
@@ -223,7 +221,7 @@
         });
     });
 
-    // 刪除文章
+    // ====== 刪除文章 ======
     function deleteBlog(id) {
       if (!confirm('確定要刪除這篇文章？')) return;
       fetch('/blog/' + id, { method: 'DELETE' })
@@ -234,7 +232,7 @@
         });
     }
 
-    // 編輯文章
+    // ====== 編輯文章 ======
     function editBlog(id) {
       const blog = blogs.find(b => b.id === id);
       if (!blog) return;
@@ -253,12 +251,14 @@
       }
     }
 
+    // 讓全域可呼叫
     window.deleteBlog = deleteBlog;
     window.editBlog = editBlog;
 
+    // ====== 頁面載入時自動取得文章 ======
     document.addEventListener('DOMContentLoaded', fetchBlogs);
 
-    // 圖片放大（點擊彈窗）
+    // ====== 圖片點擊放大 ======
     document.addEventListener('click', function (e) {
       if (e.target.classList.contains('cover')) {
         const src = e.target.src;
