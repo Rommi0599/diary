@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 
 // 建立 Express 應用程式實例
 const app = express();
@@ -40,16 +41,17 @@ app.get('/users', (req, res) => {
   });
 });
 
+
 // 新增管理員
-app.post('/addUser', (req, res) => {
-  // 從前端取得新增管理員的資料（帳號、密碼雜湊、是否為管理員）
+app.post('/addUser', async (req, res) => {
+  //從前端取得新增管理員的資料（帳號、密碼雜湊、是否為管理員）
   const newUser = req.body;
+  const hash = await bcrypt.hash(newUser.password_hash, 10);
   const query = 'INSERT INTO admin (username, password_hash, is_admin) VALUES (?, ?, ?)';
-  const values = [newUser.username, newUser.password_hash, newUser.is_admin || 0];
+  const values = [newUser.username, hash, newUser.is_admin || 0];
   db.run(query, values, function (err) {
     if (err) {
       // 新增失敗時，印出錯誤並回傳失敗訊息
-      console.error('Error adding admin to SQLite:', err);
       res.status(500).json({ success: false, message: '新增失敗' });
     } else {
       // 新增成功，回傳成功訊息與該管理員的 ID
@@ -70,11 +72,13 @@ app.delete('/user/:id', (req, res) => {
 });
 
 // 修改管理員
-app.put('/user/:id', (req, res) => {
+app.put('/user/:id', async (req, res) => {
   const id = req.params.id;  // 從網址參數中取得要修改的管理員 ID
   const { password_hash, is_admin } = req.body;  // 從請求中取得要修改的欄位
   if (password_hash !== undefined) {
-    db.run('UPDATE admin SET password_hash = ? WHERE id = ?', [password_hash, id], function (err) {
+    // 密碼需進行雜湊
+    const hash = await bcrypt.hash(password_hash, 10);
+    db.run('UPDATE admin SET password_hash = ? WHERE id = ?', [hash, id], function (err) {
       if (err) return res.json({ success: false, message: '修改失敗' });
       res.json({ success: true });
     });
@@ -98,14 +102,14 @@ app.put('/user/:id', (req, res) => {
 // 用戶傳送帳號密碼後，系統會查詢是否存在該用戶，並回傳登入狀態與權限資訊
 app.post('/login', (req, res) => {
   const { username, password } = req.body;  // 從前端取得輸入的帳號與密碼
-  const sql = 'SELECT * FROM admin WHERE username = ? AND password_hash = ?';
-  // 查詢 admin 表中是否存在該帳號與密碼符合的用戶
-  db.get(sql, [username, password], (err, user) => {
+  // SQL 指令：查詢 admin 表格中是否存在該帳號
+  const sql = 'SELECT * FROM admin WHERE username = ?';
+  db.get(sql, [username], async (err, user) => {
     if (err) {
       // 資料庫錯誤，回傳 500 伺服器錯誤
       res.status(500).json({ success: false, message: '伺服器錯誤' });
-    } else if (user) {
-      // 查詢成功且有符合帳號密碼者，回傳登入成功與用戶資訊（包含是否為管理員 is_admin）
+    } else if (user && await bcrypt.compare(password, user.password_hash)) {
+      // 查詢成功且密碼驗證通過，回傳登入成功與用戶資訊（包含是否為管理員 is_admin）
       res.json({ success: true, message: '登入成功', user_id: user.id, username: user.username, is_admin: user.is_admin });
     } else {
       // 查無此帳號或密碼錯誤
